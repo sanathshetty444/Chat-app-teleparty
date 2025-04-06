@@ -11,7 +11,7 @@ function App() {
             <MainContext.Provider
                 value={{ client, currentUserId, setCurrentUserId: setUserId }}
             >
-                <BrowserRouter>
+                <BrowserRouter basename="/chat-app">
                     <Routes>
                         <Route path="/" element={<Landing />} />
                         <Route path="/room" element={<Room />} />
