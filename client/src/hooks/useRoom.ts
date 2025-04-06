@@ -1,7 +1,6 @@
 import MainContext from "@/context/mainContext";
 import { EventEmitter } from "@/lib/EventEmitter";
 import { EVENT_NAMES } from "@/lib/Socket/constants";
-import CreateForm from "@/pages/Landing/forms/CreateForm";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { SocketMessageTypes } from "teleparty-websocket-lib";

@@ -33,7 +33,7 @@ export const useLanding = () => {
         console.log("Joining Room:", input);
         const { nickName, roomId } = input;
         try {
-            const res = await client?.joinChatRoom(nickName, roomId);
+            await client?.joinChatRoom(nickName, roomId);
             // if (res) setCurrentRoom(roomId);
             navigate("/room", { state: { roomId } });
         } catch (error) {

@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import React from "react";
 
 type Props = {
     userName?: string;
