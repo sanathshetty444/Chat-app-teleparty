@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Route, Routes } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Room from "./pages/Room";
 import MainContext from "./context/mainContext";
@@ -11,12 +11,12 @@ function App() {
             <MainContext.Provider
                 value={{ client, currentUserId, setCurrentUserId: setUserId }}
             >
-                <BrowserRouter basename="/chat-app">
+                <HashRouter>
                     <Routes>
                         <Route path="/" element={<Landing />} />
                         <Route path="/room" element={<Room />} />
                     </Routes>
-                </BrowserRouter>
+                </HashRouter>
             </MainContext.Provider>
         </>
     );

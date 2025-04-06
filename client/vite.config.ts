@@ -5,7 +5,7 @@ import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-    base: "/chat-app/",
+    base: "/Chat-app-teleparty/",
     plugins: [react(), tailwindcss()],
     resolve: {
         alias: {

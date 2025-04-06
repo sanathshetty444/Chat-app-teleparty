@@ -1,4 +1,3 @@
-import React from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -27,9 +26,6 @@ function Room() {
                     <CardDescription>
                         <ScrollArea className="h-100 rounded-md border">
                             <div className="p-4">
-                                <h4 className="mb-4 text-sm font-medium leading-none">
-                                    Tags
-                                </h4>
                                 {chats.map(
                                     (chat: {
                                         userName?: string;
