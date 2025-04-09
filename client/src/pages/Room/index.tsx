@@ -12,16 +12,28 @@ import Chat from "@/components/molecules/Chat";
 import { useRoom } from "@/hooks/useRoom";
 
 function Room() {
-    const { roomId, text, typing, chats, onBlur, onChangeText, onSubmit } =
-        useRoom();
+    const {
+        roomId,
+        text,
+        typing,
+        chats,
+        onBlur,
+        onChangeText,
+        onSubmit,
+        onExitRoom,
+    } = useRoom();
     return (
         <>
             <div className="flex w-[100%] h-[100%] items-center justify-center">
                 <Card className=" m-auto w-[80%] px-5 max-h-[80%] flex flex-col justify-between">
-                    <CardHeader className="px-0">
-                        <CardTitle className="text-left">
-                            Room Id: {roomId}
-                        </CardTitle>
+                    <CardHeader className="px-0 flex flex-row justify-between">
+                        <div className="text-left">Room Id: {roomId}</div>
+                        <div
+                            className="text-left cursor-pointer"
+                            onClick={onExitRoom}
+                        >
+                            Exit Room
+                        </div>
                     </CardHeader>
                     <CardDescription>
                         <ScrollArea className="h-100 rounded-md border">

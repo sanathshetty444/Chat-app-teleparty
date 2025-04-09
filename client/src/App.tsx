@@ -5,11 +5,16 @@ import MainContext from "./context/mainContext";
 import { useApp } from "./hooks/useApp";
 
 function App() {
-    const { client, currentUserId, setUserId } = useApp();
+    const { client, currentUserId, reinitialize, disconnect } = useApp();
     return (
         <>
             <MainContext.Provider
-                value={{ client, currentUserId, setCurrentUserId: setUserId }}
+                value={{
+                    client,
+                    currentUserId,
+                    reinitialize,
+                    disconnect,
+                }}
             >
                 <HashRouter>
                     <Routes>

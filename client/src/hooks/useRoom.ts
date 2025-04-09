@@ -2,13 +2,15 @@ import MainContext from "@/context/mainContext";
 import { EventEmitter } from "@/lib/EventEmitter";
 import { EVENT_NAMES } from "@/lib/Socket/constants";
 import { useContext, useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { SocketMessageTypes } from "teleparty-websocket-lib";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { SocketMessageTypes, TelepartyClient } from "teleparty-websocket-lib";
 
 export const useRoom = () => {
-    const location = useLocation();
-    const { client, currentUserId } = useContext(MainContext)!;
-    const { roomId } = location?.state;
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const { client, currentUserId, disconnect } = useContext(MainContext)!;
+    const { roomId, nickName } = JSON.parse(atob(searchParams.get("q")!));
+
     const [text, setText] = useState("");
     const [typing, setTyping] = useState(false);
     const [chats, setChats] = useState<{ userName?: string; text: string }[]>(
@@ -17,47 +19,66 @@ export const useRoom = () => {
     const ref = useRef<boolean>(false);
 
     useEffect(() => {
-        if (!ref.current) {
-            ref.current = true;
-            EventEmitter.listen(EVENT_NAMES.MESSAGE, (message: any) => {
-                if (message.type === SocketMessageTypes.SET_TYPING_PRESENCE) {
-                    if (!message.data.anyoneTyping) setTyping(false);
-                    else {
-                        const usersTyping = message.data.usersTyping;
-                        const index = usersTyping.findIndex(
-                            (user: string) => user === currentUserId
-                        );
-                        if (index !== -1) usersTyping.splice(index, 1);
-                        if (usersTyping.length > 0) {
-                            setTyping(message.data.anyoneTyping);
-                        }
-                    }
-                }
-
-                if (message.type === SocketMessageTypes.SEND_MESSAGE) {
-                    const userName = message.data.userNickname;
-                    const body = message.data.body;
-                    const isSystem = message.data.isSystemMessage;
-                    if (isSystem) {
-                        setChats((prev) => [
-                            ...prev,
-                            {
-                                text: userName + " " + body,
-                            },
-                        ]);
-                    } else {
-                        setChats((prev) => [
-                            ...prev,
-                            {
-                                userName,
-                                text: body,
-                            },
-                        ]);
-                    }
-                }
-            });
+        function func(client: TelepartyClient) {
+            client?.joinChatRoom(nickName, roomId);
         }
+        EventEmitter.listen(EVENT_NAMES.ON_CONNECT, func);
+
+        return () => {
+            EventEmitter.removeListener(EVENT_NAMES.ON_CONNECT, func);
+        };
     }, []);
+
+    useEffect(() => {
+        function onMessageHandler(message: any) {
+            if (message.type === SocketMessageTypes.SET_TYPING_PRESENCE) {
+                if (!message.data.anyoneTyping) setTyping(false);
+                else {
+                    const usersTyping = message.data.usersTyping;
+                    console.log("currentUserId", currentUserId);
+
+                    const index = usersTyping.findIndex(
+                        (user: string) => user === currentUserId
+                    );
+                    if (index !== -1) usersTyping.splice(index, 1);
+                    if (usersTyping.length > 0) {
+                        setTyping(message.data.anyoneTyping);
+                    }
+                }
+            }
+
+            if (message.type === SocketMessageTypes.SEND_MESSAGE) {
+                const userName = message.data.userNickname;
+                const body = message.data.body;
+                const isSystem = message.data.isSystemMessage;
+                if (isSystem) {
+                    setChats((prev) => [
+                        ...prev,
+                        {
+                            text: userName + " " + body,
+                        },
+                    ]);
+                } else {
+                    setChats((prev) => [
+                        ...prev,
+                        {
+                            userName,
+                            text: body,
+                        },
+                    ]);
+                }
+            }
+        }
+        if (!ref.current && currentUserId) {
+            ref.current = true;
+
+            EventEmitter.listen(EVENT_NAMES.MESSAGE, onMessageHandler);
+        }
+
+        return () => {
+            EventEmitter.removeListener(EVENT_NAMES.MESSAGE, onMessageHandler);
+        };
+    }, [currentUserId]);
 
     const onChangeText = (e: React.ChangeEvent<HTMLInputElement>) => {
         setText(e.target.value);
@@ -79,7 +100,21 @@ export const useRoom = () => {
         });
         setText("");
     };
+
+    const onExitRoom = () => {
+        disconnect();
+        navigate("/");
+    };
     console.log("chats", chats);
 
-    return { roomId, text, typing, chats, onChangeText, onBlur, onSubmit };
+    return {
+        roomId,
+        text,
+        typing,
+        chats,
+        onChangeText,
+        onBlur,
+        onSubmit,
+        onExitRoom,
+    };
 };

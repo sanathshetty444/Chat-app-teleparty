@@ -4,11 +4,12 @@ import { EVENT_NAMES } from "./constants";
 
 export class Socket {
     static socket: TelepartyClient;
-    static initalise() {
-        if (this.socket) return this.socket;
+    static initalise(force = false) {
+        if (this.socket && !force) return this.socket;
         this.socket = new TelepartyClient({
             onConnectionReady: () => {
-                console.log("Connection has been established");
+                console.log("Connection has been established", this.socket);
+                EventEmitter.emit(EVENT_NAMES.ON_CONNECT, this.socket);
             },
             onClose: () => {
                 console.log("Socket has been closed");
