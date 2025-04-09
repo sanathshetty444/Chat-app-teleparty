@@ -5,14 +5,13 @@ import MainContext from "./context/mainContext";
 import { useApp } from "./hooks/useApp";
 
 function App() {
-    const { client, currentUserId, reinitialize, disconnect } = useApp();
+    const { client, currentUserId, disconnect } = useApp();
     return (
         <>
             <MainContext.Provider
                 value={{
                     client,
                     currentUserId,
-                    reinitialize,
                     disconnect,
                 }}
             >

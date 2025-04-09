@@ -1,7 +1,7 @@
 import MainContext from "@/context/mainContext";
 import { EventEmitter } from "@/lib/EventEmitter";
 import { EVENT_NAMES } from "@/lib/Socket/constants";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SocketMessageTypes, TelepartyClient } from "teleparty-websocket-lib";
 
@@ -29,51 +29,54 @@ export const useRoom = () => {
         };
     }, []);
 
-    useEffect(() => {
-        function onMessageHandler(message: any) {
-            if (message.type === SocketMessageTypes.SET_TYPING_PRESENCE) {
-                if (!message.data.anyoneTyping) setTyping(false);
-                else {
-                    const usersTyping = message.data.usersTyping;
-                    console.log("currentUserId", currentUserId);
+    const onMessageHandler = useCallback(
+        (message: any) => {
+            {
+                if (message.type === SocketMessageTypes.SET_TYPING_PRESENCE) {
+                    if (!message.data.anyoneTyping) setTyping(false);
+                    else {
+                        const usersTyping = message.data.usersTyping;
+                        console.log("currentUserId", currentUserId);
 
-                    const index = usersTyping.findIndex(
-                        (user: string) => user === currentUserId
-                    );
-                    if (index !== -1) usersTyping.splice(index, 1);
-                    if (usersTyping.length > 0) {
-                        setTyping(message.data.anyoneTyping);
+                        const index = usersTyping.findIndex(
+                            (user: string) => user === currentUserId
+                        );
+                        if (index !== -1) usersTyping.splice(index, 1);
+                        if (usersTyping.length > 0) {
+                            setTyping(message.data.anyoneTyping);
+                        }
+                    }
+                }
+
+                if (message.type === SocketMessageTypes.SEND_MESSAGE) {
+                    const userName = message.data.userNickname;
+                    const body = message.data.body;
+                    const isSystem = message.data.isSystemMessage;
+                    if (isSystem) {
+                        setChats((prev) => [
+                            ...prev,
+                            {
+                                text: userName + " " + body,
+                            },
+                        ]);
+                    } else {
+                        setChats((prev) => [
+                            ...prev,
+                            {
+                                userName,
+                                text: body,
+                            },
+                        ]);
                     }
                 }
             }
+        },
+        [currentUserId]
+    );
 
-            if (message.type === SocketMessageTypes.SEND_MESSAGE) {
-                const userName = message.data.userNickname;
-                const body = message.data.body;
-                const isSystem = message.data.isSystemMessage;
-                if (isSystem) {
-                    setChats((prev) => [
-                        ...prev,
-                        {
-                            text: userName + " " + body,
-                        },
-                    ]);
-                } else {
-                    setChats((prev) => [
-                        ...prev,
-                        {
-                            userName,
-                            text: body,
-                        },
-                    ]);
-                }
-            }
-        }
-        if (!ref.current && currentUserId) {
-            ref.current = true;
-
-            EventEmitter.listen(EVENT_NAMES.MESSAGE, onMessageHandler);
-        }
+    useEffect(() => {
+        // ref.current = true;
+        EventEmitter.listen(EVENT_NAMES.MESSAGE, onMessageHandler);
 
         return () => {
             EventEmitter.removeListener(EVENT_NAMES.MESSAGE, onMessageHandler);
@@ -105,7 +108,6 @@ export const useRoom = () => {
         disconnect();
         navigate("/");
     };
-    console.log("chats", chats);
 
     return {
         roomId,

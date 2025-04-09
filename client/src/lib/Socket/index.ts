@@ -12,6 +12,7 @@ export class Socket {
                 EventEmitter.emit(EVENT_NAMES.ON_CONNECT, this.socket);
             },
             onClose: () => {
+                EventEmitter.emit(EVENT_NAMES.ON_CLOSE, "");
                 console.log("Socket has been closed");
             },
             onMessage: (message) => {
