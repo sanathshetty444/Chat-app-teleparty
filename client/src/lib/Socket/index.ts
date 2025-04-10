@@ -16,7 +16,7 @@ export class Socket {
                 console.log("Socket has been closed");
             },
             onMessage: (message) => {
-                EventEmitter.emit(EVENT_NAMES.MESSAGE, message);
+                EventEmitter.emit(EVENT_NAMES.MESSAGE, message, this.socket);
                 console.log("Received message: " + JSON.stringify(message));
             },
         });

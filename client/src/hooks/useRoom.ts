@@ -1,6 +1,10 @@
 import MainContext from "@/context/mainContext";
 import { EventEmitter } from "@/lib/EventEmitter";
-import { EVENT_NAMES } from "@/lib/Socket/constants";
+import {
+    EVENT_NAMES,
+    MESSAGE_TYPES,
+    SEND_MESSAGE_TYPES,
+} from "@/lib/Socket/constants";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SocketMessageTypes, TelepartyClient } from "teleparty-websocket-lib";
@@ -16,23 +20,54 @@ export const useRoom = () => {
     const [chats, setChats] = useState<{ userName?: string; text: string }[]>(
         []
     );
-    const ref = useRef<boolean>(false);
+
+    console.log("clientId", currentUserId);
+    const ref = useRef(true);
+    const [getHistoryAsked, setGetHistoryAsked] = useState(false);
 
     useEffect(() => {
         function func(client: TelepartyClient) {
             client?.joinChatRoom(nickName, roomId);
         }
+
+        function onMessage(message: any, socket: any) {
+            let userId: string = "";
+            if (message.type === MESSAGE_TYPES.USER_ID) {
+                userId = message.data?.userId;
+            } else if (
+                message.type === MESSAGE_TYPES.USER_LIST &&
+                !getHistoryAsked
+            ) {
+                setGetHistoryAsked(true);
+                const peers = message.data?.filter(
+                    (item: any) =>
+                        item?.socketConnectionId !== currentUserId || userId
+                );
+                if (peers?.[0]) {
+                    socket?.sendMessage(MESSAGE_TYPES.SEND_MESSAGE, {
+                        body: JSON.stringify({
+                            body: text,
+                            from: peers?.[0]?.socketConnectionId,
+                            type: SEND_MESSAGE_TYPES.GET_HISTORY,
+                        }),
+                    });
+                }
+            }
+        }
+
         EventEmitter.listen(EVENT_NAMES.ON_CONNECT, func);
+        EventEmitter.listen(EVENT_NAMES.MESSAGE, onMessage, true);
 
         return () => {
             EventEmitter.removeListener(EVENT_NAMES.ON_CONNECT, func);
+            EventEmitter.removeListener(EVENT_NAMES.MESSAGE, onMessage);
         };
     }, []);
 
     const onMessageHandler = useCallback(
         (message: any) => {
             {
-                if (message.type === SocketMessageTypes.SET_TYPING_PRESENCE) {
+                if (message.type === MESSAGE_TYPES.SET_TYPING_PRESENCE) {
                     if (!message.data.anyoneTyping) setTyping(false);
                     else {
                         const usersTyping = message.data.usersTyping;
@@ -48,30 +83,45 @@ export const useRoom = () => {
                     }
                 }
 
-                if (message.type === SocketMessageTypes.SEND_MESSAGE) {
-                    const userName = message.data.userNickname;
-                    const body = message.data.body;
-                    const isSystem = message.data.isSystemMessage;
-                    if (isSystem) {
-                        setChats((prev) => [
-                            ...prev,
-                            {
-                                text: userName + " " + body,
-                            },
-                        ]);
-                    } else {
-                        setChats((prev) => [
-                            ...prev,
-                            {
-                                userName,
-                                text: body,
-                            },
-                        ]);
+                if (message.type === MESSAGE_TYPES.SEND_MESSAGE) {
+                    if (
+                        message.data?.type === SEND_MESSAGE_TYPES.GET_HISTORY &&
+                        message.data?.from === currentUserId
+                    ) {
+                        client?.sendMessage(MESSAGE_TYPES.SEND_MESSAGE, {
+                            body: text,
+                            type: SEND_MESSAGE_TYPES.POST_HISTORY,
+                            chats,
+                        });
+                    } else if (
+                        message.data?.type === SEND_MESSAGE_TYPES.POST_HISTORY
+                    ) {
+                        setChats(message?.data?.chats);
+                    } else if (!message.data?.type) {
+                        const userName = message.data.userNickname;
+                        const body = message.data.body;
+                        const isSystem = message.data.isSystemMessage;
+                        if (isSystem) {
+                            setChats((prev) => [
+                                ...prev,
+                                {
+                                    text: userName + " " + body,
+                                },
+                            ]);
+                        } else {
+                            setChats((prev) => [
+                                ...prev,
+                                {
+                                    userName,
+                                    text: body,
+                                },
+                            ]);
+                        }
                     }
                 }
             }
         },
-        [currentUserId]
+        [currentUserId, client]
     );
 
     useEffect(() => {
@@ -81,7 +131,7 @@ export const useRoom = () => {
         return () => {
             EventEmitter.removeListener(EVENT_NAMES.MESSAGE, onMessageHandler);
         };
-    }, [currentUserId]);
+    }, []);
 
     const onChangeText = (e: React.ChangeEvent<HTMLInputElement>) => {
         setText(e.target.value);

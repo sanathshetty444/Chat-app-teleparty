@@ -2,6 +2,7 @@ import { EventEmitter } from "@/lib/EventEmitter";
 import { Socket } from "@/lib/Socket";
 import { EVENT_NAMES } from "@/lib/Socket/constants";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { TelepartyClient } from "teleparty-websocket-lib";
 
 export const useApp = () => {
@@ -11,7 +12,7 @@ export const useApp = () => {
 
     const onMessageHandler = useCallback((message: any) => {
         if (message.type === "userId") {
-            setUserId(message.data.userId);
+            flushSync(() => setUserId(message.data.userId));
         }
     }, []);
 
